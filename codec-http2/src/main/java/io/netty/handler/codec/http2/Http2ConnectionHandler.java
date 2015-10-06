@@ -161,29 +161,17 @@ public class Http2ConnectionHandler extends ByteToMessageDecoder implements Http
         }
 
         /**
-         * Determine if the encoder should queue frames to honor the value set by
-         * {@link #encoderMaxConcurrentStreams(int)}.
-         */
-        public B encoderEnforceMaxConcurrentStreams(boolean encoderEnforceMaxConcurrentStreams) {
-            encoderMaxConcurrentStreams = -1;
-            return thisB();
-        }
-
-        private boolean encoderEnforceMaxConcurrentStreams() {
-            return encoderMaxConcurrentStreams >= 0;
-        }
-
-        /**
          * How many initial streams are allowed to exists concurrently. Frames will be queued if they would result in
          * creating a stream which would cause the number of existing streams to exceed this number.
-         * @see #encoderEnforceMaxConcurrentStreams(boolean)
+         *
+         * Use {@code -1} if you not want to enforce max concurrent streams.
          */
         public B encoderMaxConcurrentStreams(int encoderMaxConcurrentStreams) {
             // This bounds are enforced here because the builder makes assumptions about its valid range to determine
             // if it should be used.
-            if (encoderMaxConcurrentStreams < 0) {
+            if (encoderMaxConcurrentStreams < -1) {
                 throw new IllegalArgumentException("encoderMaxConcurrentStreams: " + encoderMaxConcurrentStreams +
-                        " (expected >= 0)");
+                        " (expected >= -1)");
             }
             this.encoderMaxConcurrentStreams = encoderMaxConcurrentStreams;
             return thisB();
@@ -210,7 +198,7 @@ public class Http2ConnectionHandler extends ByteToMessageDecoder implements Http
                 writer = new Http2OutboundFrameLogger(writer, frameLogger);
             }
             Http2ConnectionEncoder encoder = new DefaultHttp2ConnectionEncoder(connection, writer);
-            if (encoderEnforceMaxConcurrentStreams()) {
+            if (encoderMaxConcurrentStreams != -1) {
                 encoder = new StreamBufferingEncoder(encoder, encoderMaxConcurrentStreams);
             }
             Http2ConnectionDecoder decoder = new DefaultHttp2ConnectionDecoder(connection, encoder, reader);
